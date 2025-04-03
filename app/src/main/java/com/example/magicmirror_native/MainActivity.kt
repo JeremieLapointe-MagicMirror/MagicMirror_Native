@@ -18,6 +18,7 @@ import org.json.JSONObject
 class MainActivity : ComponentActivity() {
     private lateinit var requestQueue: RequestQueue
     private var isLoggedIn by mutableStateOf(false)
+    private var userDisplayName by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,9 +30,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             MagicMirror_NativeTheme {
                 if (isLoggedIn) {
-                    MirrorMainPage()
+                    MirrorMainPage(userDisplayName = userDisplayName)
                 } else {
-                    LoginScreen(
+                    LoginPage(
                         onLoginClick = { email, password -> loginUser(email, password) }
                     )
                 }
@@ -69,7 +70,8 @@ class MainActivity : ComponentActivity() {
                         Toast.LENGTH_SHORT
                     ).show()
 
-                    isLoggedIn = true
+                    // Récupérer les informations de l'utilisateur
+                    fetchUserProfile(token)
                 } catch (e: Exception) {
                     Toast.makeText(
                         this@MainActivity,
@@ -99,5 +101,54 @@ class MainActivity : ComponentActivity() {
             putString("AUTH_TOKEN", token)
             apply()
         }
+    }
+
+    private fun fetchUserProfile(token: String) {
+        // URL de l'API pour récupérer le profil utilisateur
+        val url = "https://magicmirrorapi.jeremielapointe.ca/api/users/me"
+
+        // Création de la requête avec l'en-tête d'autorisation
+        val jsonObjectRequest = object : JsonObjectRequest(
+            Request.Method.GET, url, null,
+            { response ->
+                try {
+                    // Extraction du prénom de l'utilisateur
+                    val userJson = response.getJSONObject("user")
+
+                    userDisplayName = if (userJson.has("firstName") && !userJson.isNull("firstName"))
+                        userJson.getString("firstName")
+                    else if (userJson.has("lastName") && !userJson.isNull("lastName"))
+                        userJson.getString("lastName")
+                    else
+                        userJson.getString("email")
+
+                    // Activer la page principale
+                    isLoggedIn = true
+
+                } catch (e: Exception) {
+                    // En cas d'erreur, continuer quand même avec la connexion
+                    isLoggedIn = true
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Erreur de récupération du profil",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            },
+            { error ->
+                // En cas d'erreur, continuer quand même avec la connexion
+                isLoggedIn = true
+                Toast.makeText(this@MainActivity, "Impossible de récupérer le profil", Toast.LENGTH_SHORT).show()
+            }
+        ) {
+            override fun getHeaders(): MutableMap<String, String> {
+                val headers = HashMap<String, String>()
+                headers["Authorization"] = "Bearer $token"
+                return headers
+            }
+        }
+
+        // Ajout de la requête à la file d'attente
+        requestQueue.add(jsonObjectRequest)
     }
 }

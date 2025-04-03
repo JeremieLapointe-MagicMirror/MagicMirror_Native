@@ -21,13 +21,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.magicmirror_native.ui.theme.MagicMirror_NativeTheme
 import org.eclipse.paho.client.mqttv3.*
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import java.util.*
 
 @Composable
-fun MirrorMainPage() {
+fun MirrorMainPage(userDisplayName: String? = null) {
     val context = LocalContext.current
     var lastMessage by remember { mutableStateOf("En attente de messages...") }
 
@@ -71,7 +70,7 @@ fun MirrorMainPage() {
 
             // Se connecter et s'abonner
             mqttClient.connect(options)
-            mqttClient.subscribe("test/topic", 0)
+            mqttClient.subscribe("led/status", 0)
 
         } catch (e: Exception) {
             lastMessage = "Erreur MQTT: ${e.message}"
@@ -101,7 +100,7 @@ fun MirrorMainPage() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Vous êtes connecté!",
+                text = if (userDisplayName != null) "Vous êtes connecté! Bonjour $userDisplayName" else "Vous êtes connecté!",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
             )

@@ -24,12 +24,11 @@ import androidx.compose.ui.unit.sp
 import com.example.magicmirror_native.ui.theme.MagicMirror_NativeTheme
 
 @Composable
-fun LoginScreen(
+fun LoginPage(
     onLoginClick: (email: String, password: String) -> Unit = { _, _ -> }
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var rememberMe by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -156,8 +155,8 @@ fun LoginScreen(
 
 @Preview(showBackground = true)
 @Composable
-fun LoginScreenPreview() {
+fun LoginPagePreview() {
     MagicMirror_NativeTheme {
-        LoginScreen()
+        LoginPage()
     }
 }
