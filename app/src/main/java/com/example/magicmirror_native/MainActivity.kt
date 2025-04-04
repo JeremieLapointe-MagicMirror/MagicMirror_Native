@@ -1,3 +1,4 @@
+// MainActivity.kt
 package com.example.magicmirror_native
 
 import android.os.Bundle
@@ -8,147 +9,134 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.android.volley.Request
-import com.android.volley.RequestQueue
-import com.android.volley.toolbox.JsonObjectRequest
-import com.android.volley.toolbox.Volley
+import com.example.magicmirror_native.models.Mirror
+import com.example.magicmirror_native.models.User
+import com.example.magicmirror_native.repository.MirrorRepository
+import com.example.magicmirror_native.screens.AdminScreen
+import com.example.magicmirror_native.screens.LoginScreen
+import com.example.magicmirror_native.screens.MirrorDetailScreen
+import com.example.magicmirror_native.screens.UserScreen
 import com.example.magicmirror_native.ui.theme.MagicMirror_NativeTheme
-import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
-    private lateinit var requestQueue: RequestQueue
-    private var isLoggedIn by mutableStateOf(false)
-    private var userDisplayName by mutableStateOf<String?>(null)
+    // Repository
+    private lateinit var repository: MirrorRepository
+
+    // États
+    private var currentUser by mutableStateOf<User?>(null)
+    private var mirrors by mutableStateOf<List<Mirror>>(emptyList())
+    private var selectedMirror by mutableStateOf<Mirror?>(null)
+    private var isLoading by mutableStateOf(false)
+    private var showMirrorDetail by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialisation de Volley
-        requestQueue = Volley.newRequestQueue(this)
+        // Initialisation du repository
+        repository = MirrorRepository(this)
 
         enableEdgeToEdge()
         setContent {
             MagicMirror_NativeTheme {
-                if (isLoggedIn) {
-                    MirrorMainPage(userDisplayName = userDisplayName)
-                } else {
-                    LoginPage(
-                        onLoginClick = { email, password -> loginUser(email, password) }
-                    )
+                when {
+                    currentUser == null -> {
+                        // Page de connexion
+                        LoginScreen(
+                            onLoginClick = { email, password -> loginUser(email, password) },
+                            isLoading = isLoading
+                        )
+                    }
+                    showMirrorDetail && selectedMirror != null -> {
+                        // Détails d'un miroir
+                        MirrorDetailScreen(
+                            mirror = selectedMirror!!,
+                            isAdmin = currentUser?.isAdmin ?: false,
+                            onBackClick = { showMirrorDetail = false }
+                        )
+                    }
+                    currentUser?.isAdmin == true -> {
+                        // Écran administrateur
+                        AdminScreen(
+                            user = currentUser!!,
+                            mirrors = mirrors,
+                            onLogoutClick = { logoutUser() },
+                            onMirrorClick = { mirror ->
+                                selectedMirror = mirror
+                                showMirrorDetail = true
+                            }
+                        )
+                    }
+                    else -> {
+                        // Écran utilisateur standard
+                        UserScreen(
+                            user = currentUser!!,
+                            mirrors = mirrors,
+                            onLogoutClick = { logoutUser() },
+                            onMirrorClick = { mirror ->
+                                selectedMirror = mirror
+                                showMirrorDetail = true
+                            }
+                        )
+                    }
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (currentUser != null) {
+            loadMirrors()
         }
     }
 
     private fun loginUser(email: String, password: String) {
-        if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Veuillez remplir tous les champs", Toast.LENGTH_SHORT).show()
-            return
-        }
+        isLoading = true
 
-        // Préparation des données JSON pour la requête
-        val jsonBody = JSONObject().apply {
-            put("email", email)
-            put("password", password)
-        }
+        repository.login(
+            email = email,
+            password = password,
+            onSuccess = { user ->
+                currentUser = user
+                isLoading = false
+                loadMirrors()
 
-        // URL de l'API
-        val url = "https://magicmirrorapi.jeremielapointe.ca/api/users/login"
-
-        // Création de la requête
-        val jsonObjectRequest = JsonObjectRequest(
-            Request.Method.POST, url, jsonBody,
-            { response ->
-                // Réponse réussie
-                try {
-                    val token = response.getString("token")
-                    saveAuthToken(token)
-
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Connexion réussie",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    // Récupérer les informations de l'utilisateur
-                    fetchUserProfile(token)
-                } catch (e: Exception) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Erreur de traitement de la réponse: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
+                val message = if (user.isAdmin) {
+                    "Connecté en tant qu'administrateur"
+                } else {
+                    "Bienvenue ${user.displayName}!"
                 }
+
+                Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
             },
-            { error ->
-                // Erreur de la requête
-                val errorMessage = when (error.networkResponse?.statusCode) {
-                    401 -> "Email ou mot de passe incorrect"
-                    else -> "Erreur: ${error.message}"
-                }
+            onError = { errorMessage ->
+                isLoading = false
                 Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_SHORT).show()
             }
         )
-
-        // Ajout de la requête à la file d'attente
-        requestQueue.add(jsonObjectRequest)
     }
 
-    private fun saveAuthToken(token: String) {
-        // Sauvegarde du token dans les SharedPreferences
-        val sharedPreferences = getSharedPreferences("MagicMirrorPrefs", MODE_PRIVATE)
-        with(sharedPreferences.edit()) {
-            putString("AUTH_TOKEN", token)
-            apply()
-        }
-    }
+    private fun loadMirrors() {
+        isLoading = true
 
-    private fun fetchUserProfile(token: String) {
-        // URL de l'API pour récupérer le profil utilisateur
-        val url = "https://magicmirrorapi.jeremielapointe.ca/api/users/me"
-
-        // Création de la requête avec l'en-tête d'autorisation
-        val jsonObjectRequest = object : JsonObjectRequest(
-            Request.Method.GET, url, null,
-            { response ->
-                try {
-                    // Extraction du prénom de l'utilisateur
-                    val userJson = response.getJSONObject("user")
-
-                    userDisplayName = if (userJson.has("firstName") && !userJson.isNull("firstName"))
-                        userJson.getString("firstName")
-                    else if (userJson.has("lastName") && !userJson.isNull("lastName"))
-                        userJson.getString("lastName")
-                    else
-                        userJson.getString("email")
-
-                    // Activer la page principale
-                    isLoggedIn = true
-
-                } catch (e: Exception) {
-                    // En cas d'erreur, continuer quand même avec la connexion
-                    isLoggedIn = true
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Erreur de récupération du profil",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+        repository.getMirrors(
+            onSuccess = { mirrorList ->
+                mirrors = mirrorList
+                isLoading = false
             },
-            { error ->
-                // En cas d'erreur, continuer quand même avec la connexion
-                isLoggedIn = true
-                Toast.makeText(this@MainActivity, "Impossible de récupérer le profil", Toast.LENGTH_SHORT).show()
+            onError = { errorMessage ->
+                isLoading = false
+                Toast.makeText(this@MainActivity, errorMessage, Toast.LENGTH_SHORT).show()
             }
-        ) {
-            override fun getHeaders(): MutableMap<String, String> {
-                val headers = HashMap<String, String>()
-                headers["Authorization"] = "Bearer $token"
-                return headers
-            }
-        }
+        )
+    }
 
-        // Ajout de la requête à la file d'attente
-        requestQueue.add(jsonObjectRequest)
+    private fun logoutUser() {
+        repository.logout()
+        currentUser = null
+        mirrors = emptyList()
+        selectedMirror = null
+        showMirrorDetail = false
+        Toast.makeText(this, "Vous avez été déconnecté", Toast.LENGTH_SHORT).show()
     }
 }

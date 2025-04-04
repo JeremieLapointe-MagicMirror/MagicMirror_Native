@@ -1,4 +1,5 @@
-package com.example.magicmirror_native
+// screens/LoginScreen.kt
+package com.example.magicmirror_native.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,14 +19,13 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.magicmirror_native.ui.theme.MagicMirror_NativeTheme
 
 @Composable
-fun LoginPage(
-    onLoginClick: (email: String, password: String) -> Unit = { _, _ -> }
+fun LoginScreen(
+    onLoginClick: (email: String, password: String) -> Unit,
+    isLoading: Boolean = false
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -39,7 +39,7 @@ fun LoginPage(
     ) {
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Logo/titre MagicMirror en italique/cursif
+        // Logo/titre
         Text(
             text = "MagicMirror",
             fontSize = 32.sp,
@@ -54,7 +54,7 @@ fun LoginPage(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = { Text("Email ou nom d'utilisateur") },
+            placeholder = { Text("Email") },
             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -64,11 +64,7 @@ fun LoginPage(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color.LightGray,
-                focusedBorderColor = MaterialTheme.colorScheme.primary
-            )
+            enabled = !isLoading
         )
 
         // Champ mot de passe
@@ -84,22 +80,10 @@ fun LoginPage(
             ),
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color.LightGray,
-                focusedBorderColor = MaterialTheme.colorScheme.primary
-            )
+            enabled = !isLoading
         )
 
-        // Ligne "Se souvenir de moi" et "Mot de passe oublié"
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-        }
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Bouton Se connecter
         Button(
@@ -108,39 +92,23 @@ fun LoginPage(
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.Black
-            )
+            enabled = !isLoading
         ) {
-            Text(
-                text = "Se connecter",
-                fontSize = 16.sp,
-                color = Color.White
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Lien pour créer un compte
-        Row(
-            modifier = Modifier.padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Vous n'avez pas de compte? ",
-                fontSize = 14.sp,
-                color = Color.Gray
-            )
-            TextButton(onClick = { /* Action création de compte */ }) {
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = Color.White
+                )
+            } else {
                 Text(
-                    text = "Créer un compte",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    text = "Se connecter",
+                    fontSize = 16.sp,
+                    color = Color.White
                 )
             }
         }
+
+        Spacer(modifier = Modifier.weight(1f))
 
         // Version
         Text(
@@ -150,13 +118,5 @@ fun LoginPage(
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoginPagePreview() {
-    MagicMirror_NativeTheme {
-        LoginPage()
     }
 }
