@@ -24,10 +24,12 @@ class MainActivity : ComponentActivity() {
 
     // États
     private var currentUser by mutableStateOf<User?>(null)
-    private var mirrors by mutableStateOf<List<Mirror>>(emptyList())
+    private var allMirrors by mutableStateOf<List<Mirror>>(emptyList())
+    private var filteredMirrors by mutableStateOf<List<Mirror>>(emptyList())
     private var selectedMirror by mutableStateOf<Mirror?>(null)
     private var isLoading by mutableStateOf(false)
     private var showMirrorDetail by mutableStateOf(false)
+    private var currentFilter by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,11 +60,15 @@ class MainActivity : ComponentActivity() {
                         // Écran administrateur
                         AdminScreen(
                             user = currentUser!!,
-                            mirrors = mirrors,
+                            mirrors = filteredMirrors,
                             onLogoutClick = { logoutUser() },
                             onMirrorClick = { mirror ->
                                 selectedMirror = mirror
                                 showMirrorDetail = true
+                            },
+                            onFilterChanged = { filter ->
+                                currentFilter = filter
+                                applyFilter()
                             }
                         )
                     }
@@ -70,11 +76,15 @@ class MainActivity : ComponentActivity() {
                         // Écran utilisateur standard
                         UserScreen(
                             user = currentUser!!,
-                            mirrors = mirrors,
+                            mirrors = filteredMirrors,
                             onLogoutClick = { logoutUser() },
                             onMirrorClick = { mirror ->
                                 selectedMirror = mirror
                                 showMirrorDetail = true
+                            },
+                            onFilterChanged = { filter ->
+                                currentFilter = filter
+                                applyFilter()
                             }
                         )
                     }
@@ -121,7 +131,8 @@ class MainActivity : ComponentActivity() {
 
         repository.getMirrors(
             onSuccess = { mirrorList ->
-                mirrors = mirrorList
+                allMirrors = mirrorList
+                applyFilter()
                 isLoading = false
             },
             onError = { errorMessage ->
@@ -131,12 +142,22 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    private fun applyFilter() {
+        filteredMirrors = when (currentFilter) {
+            "active" -> allMirrors.filter { it.isActive }
+            "inactive" -> allMirrors.filter { !it.isActive }
+            else -> allMirrors
+        }
+    }
+
     private fun logoutUser() {
         repository.logout()
         currentUser = null
-        mirrors = emptyList()
+        allMirrors = emptyList()
+        filteredMirrors = emptyList()
         selectedMirror = null
         showMirrorDetail = false
+        currentFilter = null
         Toast.makeText(this, "Vous avez été déconnecté", Toast.LENGTH_SHORT).show()
     }
 }

@@ -24,15 +24,18 @@ fun AdminScreen(
     user: User,
     mirrors: List<Mirror>,
     onLogoutClick: () -> Unit,
-    onMirrorClick: (Mirror) -> Unit
+    onMirrorClick: (Mirror) -> Unit,
+    onFilterChanged: (String?) -> Unit
 ) {
+    var currentFilter by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF0F4F8))  // Fond légèrement différent pour l'admin
+            .background(Color(0xFFF0F4F8))
             .padding(16.dp)
     ) {
-        // Header - Admin version (bleu)
+        // Header - Admin version
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -69,26 +72,66 @@ fun AdminScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Tous les états",
+                text = "Tous",
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp)
+                    .clickable {
+                        currentFilter = null
+                        onFilterChanged(null)
+                    },
+                fontWeight = if (currentFilter == null) FontWeight.Bold else FontWeight.Normal,
+                color = if (currentFilter == null) MaterialTheme.colorScheme.primary else Color.Gray
             )
 
             Text(
-                text = "Tous les widgets",
+                text = "Actifs",
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
+                    .clickable {
+                        currentFilter = "active"
+                        onFilterChanged("active")
+                    },
+                fontWeight = if (currentFilter == "active") FontWeight.Bold else FontWeight.Normal,
+                color = if (currentFilter == "active") MaterialTheme.colorScheme.primary else Color.Gray
+            )
+
+            Text(
+                text = "Inactifs",
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)
+                    .clickable {
+                        currentFilter = "inactive"
+                        onFilterChanged("inactive")
+                    },
+                fontWeight = if (currentFilter == "inactive") FontWeight.Bold else FontWeight.Normal,
+                color = if (currentFilter == "inactive") MaterialTheme.colorScheme.primary else Color.Gray
             )
         }
 
         // Liste des miroirs
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(mirrors) { mirror ->
-                MirrorItem(mirror, onMirrorClick)
+        if (mirrors.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Aucun miroir trouvé",
+                    color = Color.Gray,
+                    fontSize = 16.sp
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(mirrors) { mirror ->
+                    MirrorItem(mirror, onMirrorClick)
+                }
             }
         }
     }

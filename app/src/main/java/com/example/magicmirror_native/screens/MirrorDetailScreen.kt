@@ -1,3 +1,4 @@
+// screens/MirrorDetailScreen.kt
 package com.example.magicmirror_native.screens
 
 import androidx.compose.foundation.background
@@ -5,6 +6,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info  // Icône disponible par défaut
+import androidx.compose.material.icons.filled.Settings  // Icône disponible par défaut
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +25,8 @@ fun MirrorDetailScreen(
     onBackClick: () -> Unit
 ) {
     val backgroundColor = if (isAdmin) Color(0xFFF0F4F8) else Color.White
-    
+    var isLightOn by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -42,14 +46,14 @@ fun MirrorDetailScreen(
                     contentDescription = "Retour"
                 )
             }
-            
+
             Text(
                 text = mirror.name,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
         }
-        
+
         // État du miroir
         Card(
             modifier = Modifier
@@ -68,13 +72,13 @@ fun MirrorDetailScreen(
                     text = "État du Miroir",
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Text(
                     text = if (mirror.isActive) "Connecté" else "Déconnecté",
                     color = if (mirror.isActive) Color.Green else Color.Red
                 )
             }
-            
+
             Text(
                 text = "Dernière utilisation: ${mirror.lastSeen}",
                 modifier = Modifier.padding(start = 16.dp, bottom = 16.dp),
@@ -82,7 +86,44 @@ fun MirrorDetailScreen(
                 color = Color.Gray
             )
         }
-        
+
+        // Température du système
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,  // Icône Info à la place de Thermostat
+                    contentDescription = "Température",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = "Température du système",
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Text(
+                    text = "42°C", // Valeur d'exemple
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
         // Widgets actifs
         Text(
             text = "Widgets Actifs",
@@ -90,7 +131,7 @@ fun MirrorDetailScreen(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
         )
-        
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -99,7 +140,7 @@ fun MirrorDetailScreen(
                 WidgetItem(name = widget)
             }
         }
-        
+
         // Paramètres rapides
         Text(
             text = "Paramètres Rapides",
@@ -107,7 +148,7 @@ fun MirrorDetailScreen(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
         )
-        
+
         // Luminosité
         Column(
             modifier = Modifier
@@ -118,32 +159,46 @@ fun MirrorDetailScreen(
                 text = "Luminosité",
                 fontSize = 14.sp
             )
-            
+
             Slider(
                 value = 0.75f,  // Exemple: 75%
                 onValueChange = { /* */ },
                 modifier = Modifier.fillMaxWidth()
             )
         }
-        
-        // Volume
-        Column(
+
+        // Bouton Allumer/Éteindre lumière
+        Button(
+            onClick = { isLightOn = !isLightOn },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isLightOn) MaterialTheme.colorScheme.primary else Color.Gray
+            )
         ) {
-            Text(
-                text = "Volume",
-                fontSize = 14.sp
-            )
-            
-            Slider(
-                value = 0.5f,  // Exemple: 50%
-                onValueChange = { /* */ },
-                modifier = Modifier.fillMaxWidth()
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,  // Icône Settings à la place de Lightbulb
+                    contentDescription = "Lumière",
+                    tint = Color.White
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = if (isLightOn) "Éteindre la lumière" else "Allumer la lumière",
+                    color = Color.White
+                )
+            }
         }
-        
+
         // Mode Veille
         Row(
             modifier = Modifier
@@ -156,7 +211,7 @@ fun MirrorDetailScreen(
                 text = "Mode Veille",
                 fontSize = 14.sp
             )
-            
+
             Switch(
                 checked = false,
                 onCheckedChange = { /* */ }
@@ -167,6 +222,7 @@ fun MirrorDetailScreen(
 
 @Composable
 fun WidgetItem(name: String) {
+    // Code inchangé
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(8.dp)
@@ -183,14 +239,14 @@ fun WidgetItem(name: String) {
                 fontWeight = FontWeight.Bold
             )
         }
-        
+
         Spacer(modifier = Modifier.height(4.dp))
-        
+
         Text(
             text = name,
             fontSize = 12.sp
         )
-        
+
         Text(
             text = "Activé",
             fontSize = 10.sp,
