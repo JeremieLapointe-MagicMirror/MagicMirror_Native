@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.magicmirror_native.components.SearchBar
 import com.example.magicmirror_native.models.Mirror
 import com.example.magicmirror_native.models.User
 
@@ -23,6 +24,8 @@ import com.example.magicmirror_native.models.User
 fun UserScreen(
     user: User,
     mirrors: List<Mirror>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     onLogoutClick: () -> Unit,
     onMirrorClick: (Mirror) -> Unit,
     onFilterChanged: (String?) -> Unit
@@ -59,6 +62,13 @@ fun UserScreen(
 
         Divider()
 
+        // Barre de recherche
+        SearchBar(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            placeholder = "Rechercher un miroir..."
+        )
+
         // Filtres par statut
         Row(
             modifier = Modifier
@@ -80,7 +90,7 @@ fun UserScreen(
             )
 
             Text(
-                text = "Actifs",
+                text = "Ouverts",  // Changé de "Actifs" à "Ouverts"
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 8.dp)
@@ -93,7 +103,7 @@ fun UserScreen(
             )
 
             Text(
-                text = "Inactifs",
+                text = "Fermés",  // Changé de "Inactifs" à "Fermés"
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)
@@ -154,9 +164,9 @@ fun MirrorItem(
                 fontSize = 16.sp
             )
 
-            // Indicateur de statut
+            // Indicateur de statut - changé pour utiliser Ouvert/Fermé
             Text(
-                text = if (mirror.isActive) "Actif" else "Inactif",
+                text = if (mirror.isActive) "Ouvert" else "Fermé",
                 color = if (mirror.isActive) Color.Green else Color.Red,
                 modifier = Modifier.padding(start = 8.dp)
             )

@@ -11,6 +11,9 @@ import com.example.magicmirror_native.models.User
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.Date
+import com.example.magicmirror_native.models.MirrorStateUpdate
+import com.example.magicmirror_native.models.ScreenMode
 
 class MirrorRepository(private val context: Context) {
     private val sharedPreferences: SharedPreferences =
@@ -116,6 +119,44 @@ class MirrorRepository(private val context: Context) {
             }
         })
     }
+    // repository/MirrorRepository.kt
+    fun updateMirrorScreenState(
+        mirrorId: Int,
+        isScreenOpen: Boolean,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val token = getAuthToken()
+        if (token.isNullOrEmpty()) {
+            onError("Non authentifié")
+            return
+        }
+
+        val authHeader = "Bearer $token"
+
+        // Créer l'objet de mise à jour avec la classe dédiée
+        val updateData = if (isScreenOpen) {
+            MirrorStateUpdate(isActive = isScreenOpen, lastUpdate = Date().time)
+        } else {
+            MirrorStateUpdate(isActive = isScreenOpen)
+        }
+
+        // Appel API
+        RetrofitClient.instance.updateMirrorState(authHeader, mirrorId, updateData)
+            .enqueue(object : Callback<Mirror> {
+                override fun onResponse(call: Call<Mirror>, response: Response<Mirror>) {
+                    if (response.isSuccessful) {
+                        onSuccess()
+                    } else {
+                        onError("Erreur: ${response.message()}")
+                    }
+                }
+
+                override fun onFailure(call: Call<Mirror>, t: Throwable) {
+                    onError("Erreur réseau: ${t.message}")
+                }
+            })
+    }
 
     fun logout() {
         with(sharedPreferences.edit()) {
@@ -133,5 +174,48 @@ class MirrorRepository(private val context: Context) {
 
     private fun getAuthToken(): String? {
         return sharedPreferences.getString(AUTH_TOKEN_KEY, null)
+    }
+    fun updateMirrorScreenMode(
+        mirrorId: Int,
+        screenMode: ScreenMode,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        val token = getAuthToken()
+        if (token.isNullOrEmpty()) {
+            onError("Non authentifié")
+            return
+        }
+
+        val authHeader = "Bearer $token"
+
+        // En fonction du mode, définir aussi l'état
+        val isActive = when(screenMode) {
+            ScreenMode.AUTOMATIC -> false // Laissez le PIR décider
+            ScreenMode.ALWAYS_ON -> true
+            ScreenMode.ALWAYS_OFF -> false
+        }
+
+        // Créer l'objet de mise à jour
+        val updateData = MirrorStateUpdate(
+            isActive = isActive,
+            screenMode = screenMode.name
+        )
+
+        // Appel API
+        RetrofitClient.instance.updateMirrorState(authHeader, mirrorId, updateData)
+            .enqueue(object : Callback<Mirror> {
+                override fun onResponse(call: Call<Mirror>, response: Response<Mirror>) {
+                    if (response.isSuccessful) {
+                        onSuccess()
+                    } else {
+                        onError("Erreur: ${response.message()}")
+                    }
+                }
+
+                override fun onFailure(call: Call<Mirror>, t: Throwable) {
+                    onError("Erreur réseau: ${t.message}")
+                }
+            })
     }
 }

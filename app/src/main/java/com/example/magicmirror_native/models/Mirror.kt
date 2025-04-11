@@ -6,5 +6,14 @@ data class Mirror(
     val isActive: Boolean = false,
     val widgets: List<String> = emptyList(),
     val lastSeen: String = "",
-    val ipAddress: String? = null
-)
+    val ipAddress: String? = null,
+    val screenMode: String = "AUTOMATIC" // Mode par défaut
+) {
+    fun getScreenMode(): ScreenMode {
+        return try {
+            ScreenMode.valueOf(screenMode)
+        } catch (e: Exception) {
+            ScreenMode.AUTOMATIC
+        }
+    }
+}

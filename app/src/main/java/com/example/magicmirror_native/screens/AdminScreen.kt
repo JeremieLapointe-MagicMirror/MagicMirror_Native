@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.magicmirror_native.components.SearchBar
 import com.example.magicmirror_native.models.Mirror
 import com.example.magicmirror_native.models.User
 
@@ -23,6 +24,8 @@ import com.example.magicmirror_native.models.User
 fun AdminScreen(
     user: User,
     mirrors: List<Mirror>,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     onLogoutClick: () -> Unit,
     onMirrorClick: (Mirror) -> Unit,
     onFilterChanged: (String?) -> Unit
@@ -64,6 +67,13 @@ fun AdminScreen(
             }
         }
 
+        // Barre de recherche
+        SearchBar(
+            value = searchQuery,
+            onValueChange = onSearchQueryChange,
+            placeholder = "Rechercher un miroir..."
+        )
+
         // Filtres
         Row(
             modifier = Modifier
@@ -85,7 +95,7 @@ fun AdminScreen(
             )
 
             Text(
-                text = "Actifs",
+                text = "Ouverts",  // Changé de "Actifs" à "Ouverts"
                 modifier = Modifier
                     .weight(1f)
                     .padding(horizontal = 8.dp)
@@ -98,7 +108,7 @@ fun AdminScreen(
             )
 
             Text(
-                text = "Inactifs",
+                text = "Fermés",  // Changé de "Inactifs" à "Fermés"
                 modifier = Modifier
                     .weight(1f)
                     .padding(start = 8.dp)

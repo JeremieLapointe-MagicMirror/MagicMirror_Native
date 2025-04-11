@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.example.magicmirror_native.models.Mirror
+import com.example.magicmirror_native.models.ScreenMode
 import com.example.magicmirror_native.models.User
 import com.example.magicmirror_native.repository.MirrorRepository
 import com.example.magicmirror_native.screens.AdminScreen
@@ -30,6 +31,9 @@ class MainActivity : ComponentActivity() {
     private var isLoading by mutableStateOf(false)
     private var showMirrorDetail by mutableStateOf(false)
     private var currentFilter by mutableStateOf<String?>(null)
+
+    // État pour la recherche
+    private var searchQuery by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,7 +57,31 @@ class MainActivity : ComponentActivity() {
                         MirrorDetailScreen(
                             mirror = selectedMirror!!,
                             isAdmin = currentUser?.isAdmin ?: false,
-                            onBackClick = { showMirrorDetail = false }
+                            onBackClick = { showMirrorDetail = false },
+                            onScreenStateChange = { mirrorId, isOpen ->
+                                repository.updateMirrorScreenState(
+                                    mirrorId = mirrorId,
+                                    isScreenOpen = isOpen,
+                                    onSuccess = {
+                                        loadMirrors()
+                                    },
+                                    onError = { errorMsg ->
+                                        Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            },
+                            onScreenModeChange = { mirrorId, mode ->
+                                repository.updateMirrorScreenMode(
+                                    mirrorId = mirrorId,
+                                    screenMode = mode,
+                                    onSuccess = {
+                                        loadMirrors()
+                                    },
+                                    onError = { errorMsg ->
+                                        Toast.makeText(this@MainActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                                    }
+                                )
+                            }
                         )
                     }
                     currentUser?.isAdmin == true -> {
@@ -61,6 +89,8 @@ class MainActivity : ComponentActivity() {
                         AdminScreen(
                             user = currentUser!!,
                             mirrors = filteredMirrors,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { updateSearchQuery(it) },
                             onLogoutClick = { logoutUser() },
                             onMirrorClick = { mirror ->
                                 selectedMirror = mirror
@@ -77,6 +107,8 @@ class MainActivity : ComponentActivity() {
                         UserScreen(
                             user = currentUser!!,
                             mirrors = filteredMirrors,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { updateSearchQuery(it) },
                             onLogoutClick = { logoutUser() },
                             onMirrorClick = { mirror ->
                                 selectedMirror = mirror
@@ -143,11 +175,33 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun applyFilter() {
-        filteredMirrors = when (currentFilter) {
-            "active" -> allMirrors.filter { it.isActive }
-            "inactive" -> allMirrors.filter { !it.isActive }
-            else -> allMirrors
+        // Filtre combiné (recherche + filtre ouvert/fermé)
+        filteredMirrors = when {
+            searchQuery.isNotEmpty() -> {
+                // Priorité à la recherche par nom
+                allMirrors.filter {
+                    it.name.contains(searchQuery, ignoreCase = true)
+                }
+            }
+            currentFilter == "active" -> {
+                // Filtre par écrans ouverts
+                allMirrors.filter { it.isActive }
+            }
+            currentFilter == "inactive" -> {
+                // Filtre par écrans fermés
+                allMirrors.filter { !it.isActive }
+            }
+            else -> {
+                // Pas de filtre
+                allMirrors
+            }
         }
+    }
+
+    // Mise à jour de la méthode pour la recherche
+    private fun updateSearchQuery(query: String) {
+        searchQuery = query
+        applyFilter()
     }
 
     private fun logoutUser() {
@@ -158,6 +212,7 @@ class MainActivity : ComponentActivity() {
         selectedMirror = null
         showMirrorDetail = false
         currentFilter = null
+        searchQuery = "" // Réinitialiser la recherche
         Toast.makeText(this, "Vous avez été déconnecté", Toast.LENGTH_SHORT).show()
     }
 }
